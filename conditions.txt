@@ -1,0 +1,15 @@
+The following rules apply for strategies for single stock
+
+1) A stock can only be shorted if you are not holding any currently.
+2) If a buy action is executed, we first check for any shorted stock and square them off first.
+
+These conditions combined mean that in your portfolio you may have multiple bought stocks or multiple shorted stocks but NOT BOTH.
+
+3) In case you are holding multiple stocks (not shorted but bought)
+    When a sell action is executed the stock bought at the lowest price will be sold at the current closing price.
+
+4) All trades execute at the closing price.
+
+5) Shorted stocks must be squared the same day !!!!!
+
+
