@@ -1,7 +1,7 @@
 from .constants import *
 
 class State:
-    def __init__(self,commision : float, short = False):
+    def __init__(self,commision : float, short : bool = False):
         """
         values store your bought stocks 
         it is sorted in reverse order so the cheapest price is at the last 
@@ -82,7 +82,6 @@ class State:
 class BaseStrategy:
     """
     This is the base strategy, other methods can be implemented to work with the step method
-
     """
     def step(self,data,state : State,current_pointer : int):
         """

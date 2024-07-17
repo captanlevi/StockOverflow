@@ -26,8 +26,6 @@ class BackTest:
         ***************
         All buys and sells will be executed using the closing price of the current_pointer
         ***************
-
-
         """
         self.data = data
         self.current_pointer = 0
@@ -109,18 +107,26 @@ class BackTest:
         self.current_pointer += 1
         
     
-    def runStrategy(self):
+    def runStrategy(self,limits = None):
+        """
+        limits : List
+        limits is an optional argument that defines start and end indices for the DF ex [1200,1600]
+        """
 
-        while self.current_pointer < len(self.data):
+        start, end = 0, len(self.data)
+        if limits is not None:
+            start,end = limits
+            assert start < end, "wrong trading limits {},{}".format(start,end)
+        
+        self.current_pointer = 0
+        while self.current_pointer < end:
             try:
                 self._step()
             except NoMoneyNoHoney:
                 print("RAN out of money !!!!")
                 break
-        
         self.pprint()
 
-    
     def pprint(self):
         print("Ran from {} to {}".format(self.log["timestamp"][0], self.log["timestamp"][-1]))
         print("Initial value = {}".format(self.initial_cash))
@@ -129,4 +135,8 @@ class BackTest:
     def plotValue(self):
         plt.plot(self.log["total_value"])
         plt.show()
+
+    
+
+    
     
