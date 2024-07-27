@@ -43,7 +43,12 @@ class BackTest:
             money = [],
             is_trade_complete = [],
             stock_value = [],
-            total_value = []
+            total_value = [],
+            action = [],
+            state_length = [],
+            current_pointer = [],
+            step_trade_counter = [],
+            closing_price = []
         )
 
         self.step_trade_counter = 0
@@ -72,6 +77,7 @@ class BackTest:
         is_holding = self.state.isHolding()
         money,is_trade_complete = self.state.update(closing_price= closing_price,action= action)
         if action == BUY_ACTION:
+            self.step_trade_counter += 1
             assert money < 0
             if  is_holding and self.mode == "single":
                 raise ValueError("cant buy more than one stock in single mode !!!!")
@@ -80,21 +86,27 @@ class BackTest:
                 raise NoMoneyNoHoney
             self.cash += money
         elif action == SELL_ACTION:
+            self.step_trade_counter += 1
             if is_holding == False and self.short == False:
                 raise ValueError("cant sell stock while not holding any [set short to True first]")
             self.cash += money
 
         
         self.log["timestamp"].append(timestamp)
+        self.log["current_pointer"].append(self.current_pointer)
+        self.log["step_trade_counter"].append(self.step_trade_counter)
         self.log["money"].append(self.cash)
+        self.log["action"].append(action)
+        self.log["state_length"].append(len(self.state.values))
         self.log["is_trade_complete"].append(is_trade_complete)
+        self.log["closing_price"].append(closing_price)
         self.log["stock_value"].append(self.state.getStockValue(closing_price= closing_price))
         self.log["total_value"].append(self.cash +self.state.getStockValue(closing_price= closing_price))
 
-        self.step_trade_counter += 1
-        if self.mode == "multi":
+        
+        if self.mode == "multi" and action != HOLD_ACTION:
             # if mode is multi keep stepping until the strategy gives out hold action
-            self.step()
+            self.__step()
         
     
     def _step(self):
@@ -113,13 +125,13 @@ class BackTest:
         limits is an optional argument that defines start and end indices for the DF ex [1200,1600]
         """
 
-        start, end = 0, len(self.data)
+        start, end = 0, len(self.data) - 1
         if limits is not None:
             start,end = limits
             assert start < end, "wrong trading limits {},{}".format(start,end)
         
-        self.current_pointer = 0
-        while self.current_pointer < end:
+        self.current_pointer = start
+        while self.current_pointer <= end:
             try:
                 self._step()
             except NoMoneyNoHoney:
