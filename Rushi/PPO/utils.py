@@ -3,6 +3,7 @@ import numpy as np
 from evaluation.constants import HOLD_ACTION,BUY_ACTION,SELL_ACTION
 from evaluation.core import State
 import pandas as pd
+import pickle
 
 
 
@@ -37,6 +38,17 @@ class Logger:
     def getAllMetricNames(self):
         return list(self.metrices_dict.keys())
     
+
+    def save(self,path):
+        with open(path, 'wb') as outp:
+            pickle.dump(self, outp, pickle.HIGHEST_PROTOCOL)
+    
+
+    @staticmethod
+    def load(path):
+        with open(path, 'rb') as inp:
+            logger = pickle.load(inp)
+        return logger
 
 
 
@@ -171,7 +183,7 @@ def getStateFeatures(state : State,current_closing_price,max_holding = MAX_HOLDI
         features[1] = (current_closing_price - mean_holding)/mean_holding/.05
         features[1] = min(max(-5, features[1]), 5)
     
-    return features + features + features
+    return features + features
 
 
 def getStockFeatures(length,features,max_length):
@@ -181,7 +193,7 @@ def getStockFeatures(length,features,max_length):
 
     returns a 1-D list of features
     """
-    return [length/max_length]*4 + features.tolist()
+    return [length/max_length]*2 + features.tolist()
 
 
 

@@ -62,7 +62,6 @@ class EarlyEnvironment:
             
             assert pd.to_datetime(self.data["timestep"][i]).time() == start_time
             possible_indices.append(i)
-        
         return possible_indices
 
 
