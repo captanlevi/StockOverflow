@@ -83,6 +83,9 @@ class BackTest:
                 raise ValueError("cant buy more than one stock in single mode !!!!")
             
             if self.cash < -money:
+                print(self.cash)
+                print(money)
+                print(closing_price)
                 raise NoMoneyNoHoney
             self.cash += money
         elif action == SELL_ACTION:
@@ -101,7 +104,7 @@ class BackTest:
         self.log["is_trade_complete"].append(is_trade_complete)
         self.log["closing_price"].append(closing_price)
         self.log["stock_value"].append(self.state.getStockValue(closing_price= closing_price))
-        self.log["total_value"].append(self.cash +self.state.getStockValue(closing_price= closing_price))
+        self.log["total_value"].append(self.cash + self.state.getStockValue(closing_price= closing_price))
 
         
         if self.mode == "multi" and action != HOLD_ACTION:

@@ -4,8 +4,7 @@ from evaluation.constants import HOLD_ACTION,BUY_ACTION,SELL_ACTION
 from evaluation.core import State
 import pandas as pd
 import pickle
-
-
+from patternpy.tradingpatterns.tradingpatterns import *
 
 
 class Logger:
@@ -65,7 +64,7 @@ class Logger:
 
 
 
-def makeFeatures(df, mode):
+def makeFeatures(df, mode, add_patterns = True):
     """
     https://journalofbigdata.springeropen.com/articles/10.1186/s40537-020-00333-6/tables/2  for more features
     returns a dict of features of shape (TS,feature_size) and close which is an 1-D array
@@ -82,7 +81,7 @@ def makeFeatures(df, mode):
     def getVol(series : pd.Series,window_size):
         log_returns = np.log(series.values[1:]/series.values[:-1])
         log_returns = pd.Series([0] + log_returns.tolist())
-        vol = log_returns.rolling(window= MAX_TRADE_TIME_IN_5_MINUTE).std()*100
+        vol = log_returns.rolling(window= window_size).std()*100
         vol = vol.values[window_size:]
         vol = vol.clip(min = -5, max = 5)
         return vol.reshape(-1,1)
@@ -99,7 +98,7 @@ def makeFeatures(df, mode):
         lowest = df.low.rolling(window= window_size).min()
         highest = df.high.rolling(window= window_size).max()
         s_oss = (df.close- lowest)/(highest - lowest)
-        return s_oss.values[ROLLING_WINDOW_SIZE_IN_5_MINUTE:].reshape(-1,1)
+        return s_oss.values[window_size:].reshape(-1,1)
         
 
     assert mode in MODES, "{} is not a valid mode".format(mode)
@@ -126,6 +125,13 @@ def makeFeatures(df, mode):
     close = df["close"].values[window_size:]
     timestep = df["date"].values[window_size:]
     features = np.concatenate( [norm_open,norm_high, norm_low, norm_close,vol,s_oss,norm_vol], axis= 1)
+
+    if add_patterns == True:
+        pattern_columns = ["head_shoulder_pattern", "multiple_top_bottom_pattern",
+                            "double_pattern", "pivot_signal"]
+        patterns = df[pattern_columns].values[window_size:,:]
+        features = np.concatenate([features,patterns], axis= 1)
+    
     return dict(features = features, close = close, timestep = timestep)
 
 
@@ -255,8 +261,37 @@ def interpolatorNotForDay(df : pd.DataFrame, mode):
     
 
     new_df = pd.concat(new_df)
+    new_df.reset_index(drop=True, inplace=True)
     print("total values interpolated = {}".format(values_interpolated))
     new_df.sort_values(by= "date", inplace= True)
     new_df["date"] = new_df["date"].apply(lambda x : str(x))
     return new_df
         
+
+
+
+def addPatterns(df : pd.DataFrame):
+    def adjustForPeek(column_name):
+        df[column_name] = df[column_name].shift(-1)
+        df.loc[len(df) -1, column_name] = 0
+
+    def revertDfForTrading(df : pd.DataFrame):
+        keep_columns = ["date","open", "high", "low", "close", "volume", "head_shoulder_pattern", "multiple_top_bottom_pattern",
+                        "double_pattern", "pivot_signal", "triangle_pattern"
+                        ]
+        total_columns = list(df.columns)
+        remove_columns = list(filter(lambda x : x not in keep_columns, total_columns))
+        df.drop(columns= remove_columns, inplace= True)
+
+    detect_head_shoulder(df= df)
+    adjustForPeek(column_name= "head_shoulder_pattern")
+    detect_multiple_tops_bottoms(df= df)
+    detect_double_top_bottom(df= df)
+    adjustForPeek(column_name= "double_pattern")
+
+    detect_triangle_pattern(df= df)
+    find_pivots(df= df)
+    df.rename(columns= dict(signal = "pivot_signal"), inplace= True)
+    adjustForPeek(column_name= "pivot_signal")
+
+    revertDfForTrading(df= df)
